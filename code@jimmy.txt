@@ -1,0 +1,190 @@
+import pyttsx3 #pip install pyttsx3
+import speech_recognition as sr #pip install speechRecognition
+import datetime
+import wikipedia #pip install wikipedia
+import webbrowser
+import os
+from pathlib import Path
+import smtplib
+import pyaudio
+from pygame import mixer
+import pygame
+import pygame.camera
+
+
+
+engine = pyttsx3.init('sapi5')
+voices = engine.getProperty('voices')
+# print(voices[1].id)
+engine.setProperty('voice', voices[0].id)
+
+DIRECTORIES = {
+    "HTML": [".html5", ".html", ".htm", ".xhtml"],
+    "IMAGES": [".jpeg", ".jpg", ".tiff", ".gif", ".bmp", ".png", ".bpg", "svg",
+               ".heif", ".psd"],
+    "VIDEOS": [".avi", ".flv", ".wmv", ".mov", ".mp4", ".webm", ".vob", ".mng",
+               ".qt", ".mpg", ".mpeg", ".3gp"],
+    "DOCUMENTS": [".oxps", ".epub", ".pages", ".docx", ".doc", ".fdf", ".ods",
+                  ".odt", ".pwi", ".xsn", ".xps", ".dotx", ".docm", ".dox",
+                  ".rvg", ".rtf", ".rtfd", ".wpd", ".xls", ".xlsx", ".ppt",
+                  "pptx"],
+    "ARCHIVES": [".a", ".ar", ".cpio", ".iso", ".tar", ".gz", ".rz", ".7z",
+                 ".dmg", ".rar", ".xar", ".zip"],
+    "AUDIO": [".aac", ".aa", ".aac", ".dvf", ".m4a", ".m4b", ".m4p", ".mp3",
+              ".msv", "ogg", "oga", ".raw", ".vox", ".wav", ".wma"],
+    "PLAINTEXT": [".txt", ".in", ".out"],
+    "PDF": [".pdf"],
+    "PYTHON": [".py"],
+    "XML": [".xml"],
+    "EXE": [".exe"],
+    "SHELL": [".sh"]
+
+}
+FILE_FORMATS = {file_format: directory
+                for directory, file_formats in DIRECTORIES.items()
+                for file_format in file_formats}
+
+def speak(audio):
+    engine.say(audio)
+    engine.runAndWait()
+
+
+def wishMe():
+    hour = int(datetime.datetime.now().hour)
+    if hour>=0 and hour<12:
+        speak("Good Morning sir")
+
+    elif hour>=12 and hour<18:
+        speak("Good Afternoon sir")
+
+    else:
+        speak("Good Evening sir")
+
+    speak("I am Jimmy. Please tell me how may I help you")
+
+def takeCommand():
+    #It takes microphone input from the user and returns string output
+
+    r = sr.Recognizer()
+    with sr.Microphone() as source:
+        print("Listening...")
+        r.pause_threshold = 1
+        audio = r.listen(source)
+
+    try:
+        print("Recognizing...")
+        query = r.recognize_google(audio, language='en-in')
+        print(f"User said: {query}\n")
+
+    except Exception as e:
+        # print(e)
+        print("Say that again please...")
+        return "None"
+    return query
+
+def organize_junk():
+      for entry in os.scandir():
+            if entry.is_dir():
+                continue
+            file_path = Path(entry)
+            file_format = file_path.suffix.lower()
+            if file_format in FILE_FORMATS:
+                directory_path = Path(FILE_FORMATS[file_format])
+                directory_path.mkdir(exist_ok=True)
+                file_path.rename(directory_path.joinpath(file_path))
+
+            for dir in os.scandir():
+                try:
+                  os.rmdir(dir)
+                except:
+                    pass
+
+def playMusic():
+   music_folder = r”your music folder here”
+   music = os.listdir(music_folder)
+   random_music = music_folder + random.choice(music)
+   mixer.init()
+   mixer.music.load(random_music)
+   mixer.music.play()
+
+def takePhoto():
+    pygame.camera.init()
+    camlist = pygame.camera.list_cameras()
+    if camlist:
+        cam = pygame.camera.Camera(camlist[0], (640, 480))
+        cam.start()
+        image = cam.get_image()
+        pygame.image.save(image, "filename.jpg")
+    else:
+        print("No camera on current device")
+
+def sendEmail(to, content):
+    server = smtplib.SMTP('smtp.gmail.com', 587)
+    server.ehlo()
+    server.starttls()
+    server.login('youremail@gmail.com', 'your-password')
+    server.sendmail('youremail@gmail.com', to, content)
+    server.close()
+
+if __name__ == "__main__":
+    wishMe()
+    while True:
+    # if 1:
+        query = takeCommand().lower()
+
+        # Logic for executing tasks based on query
+        if 'wikipedia' in query:
+            speak('Searching Wikipedia...')
+            query = query.replace("wikipedia", "")
+            results = wikipedia.summary(query, sentences=2)
+            speak("According to Wikipedia")
+            print(results)
+            speak(results)
+
+        elif 'open youtube' in query:
+            webbrowser.open("youtube.com")
+
+        elif 'open google' in query:
+            webbrowser.open("google.com")
+
+        elif 'open stackoverflow' in query:
+            webbrowser.open("stackoverflow.com")
+
+        elif 'open geeks for geeks' in query:
+            webbrowser.open("geeksforgeeks.com")
+
+        elif 'the time' in query:
+            strTime = datetime.datetime.now().strftime("%H:%M:%S")
+            speak(f"Sir, the time is {strTime}")
+
+        elif 'open code' in query:
+            codePath = "C:\\Users\\Jimmy\\AppData\\Local\\Programs\\Microsoft VS Code\\Code.exe"
+            os.startfile(codePath)
+
+        elif 'email to' in query:
+            try:
+                speak("What should I say?")
+                content = takeCommand()
+                to = "receivingmailid@gmail.com"
+                sendEmail(to, content)
+                speak("Email has been sent!")
+            except Exception as e:
+                print(e)
+                speak("Sorry sir. I am not able to send this email")
+
+        elif 'manage junk' in query:
+            speak("Managing files...")
+            organize_junk()
+            speak("Success")
+
+        elif ' play music' in query:
+            playMusic()
+
+        elif 'take photo' in query:
+            speak("Capturing a pic.Be ready!")
+            takePhoto()
+
+        elif 'bye' in query:
+            speak("Thank you sir. Hope my service was worth it")
+            exit()
+
